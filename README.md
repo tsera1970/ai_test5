@@ -1,2 +1,3 @@
-# ai_test5
-履歴利用
+RAG利用<br>
+<br>
+RAG(Azure AI Search ベクトル検索)を利用したチャットボット<br>

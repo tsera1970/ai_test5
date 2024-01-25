@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>規約 Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .message-container {
+            margin-bottom: 10px;
+            white-space: pre-line;
+        }
+        .user-message {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .bot-message {
+            background-color: #e1ffe1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .input-container {
+            display: flex;
+            margin-top: 20px;
+        }
+        .input-container input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .input-container button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>規約Chatbot（RAG版）</h1>
+        <div id="chat-container"></div>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="質問を入力してください">
+            <button onclick="sendMessage()">送信</button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+
+        function sendMessage() {
+            const userMessage = userInput.value.trim();
+
+            if (userMessage !== '') {
+                displayMessage(userMessage, 'user');
+
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: userMessage
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const botMessage = data.message;
+                    displayMessage(botMessage, 'bot');
+                })
+                .catch(error => {
+                    console.log('エラーが発生しました。', error);
+                });
+
+                userInput.value = '';
+            }
+        }
+
+        function displayMessage(message, sender) {
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message-container');
+
+            const messageElement = document.createElement('div');
+            messageElement.classList.add(`${sender}-message`);
+            messageElement.textContent = message;
+
+            messageContainer.appendChild(messageElement);
+            chatContainer.appendChild(messageContainer);
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    </script>
+</body>
+</html>

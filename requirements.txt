@@ -1,0 +1,7 @@
+requests
+Flask
+openai==0.28.1
+openai[datalib]
+azure.search.documents
+azure.search.documents.models
+azure.core
