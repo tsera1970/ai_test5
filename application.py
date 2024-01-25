@@ -3,7 +3,7 @@ import json
 import requests
 from requests.exceptions import RequestException
 
-import os
+#import os
 
 import openai
 from azure.core.credentials import AzureKeyCredential  
@@ -14,15 +14,15 @@ from azure.search.documents.models import Vector
 app = Flask(__name__)
 
 #### 各種キー設定
-## プロキシ認証情報を設定 ローカルデバッグ時
-# requests用プロキシ設定
-proxies = {
-    "http": "http://sera:Ej3AR1MH,<@172.16.1.23:15080",
-    "https": "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
-}
-# openai用プロキシ設定
-os.environ["http_proxy"] = "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
-os.environ["https_proxy"] = "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
+### プロキシ認証情報を設定 ローカルデバッグ時
+## requests用プロキシ設定
+#proxies = {
+#    "http": "http://sera:Ej3AR1MH,<@172.16.1.23:15080",
+#    "https": "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
+#}
+## openai用プロキシ設定
+#os.environ["http_proxy"] = "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
+#os.environ["https_proxy"] = "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
 
 # API Management APIの呼び出しURL
 api_url = 'https://hekchat-api-managementservice.azure-api.net/openai/'
@@ -136,7 +136,7 @@ def chat():
             api_url
           , json=request_data
           , headers=headers
-          , proxies=proxies  # プロキシを指定 ローカルデバッグ時
+#          , proxies=proxies  # プロキシを指定 ローカルデバッグ時
         )
 
         # デバッグ
