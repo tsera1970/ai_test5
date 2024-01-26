@@ -38,7 +38,8 @@ embedding_model_name = 'model-text-embedding-ada-002'           # Ada（ベク�
 # Azure AI SearchのAPIキー／エンドポイント等を設定する
 search_service_endpoint = 'https://jahqnaservice01-ascv4pcsvl4cowq.search.windows.net'  # Azure AI SearchのURL
 search_service_api_key = 'EA4FCAC1E496E0EC100DAFA768E33C30'                             # Azure AI SearchのAPIキー（プライマリ管理者キーを使用）
-index_name = 'test-sera'                                                                # 作成ベクトル化INDEX名
+#index_name = 'test-sera'                                                                # 作成ベクトル化INDEX名
+index_name = 'vector-nagao-kitei'                                                       # 作成ベクトル化INDEX名
 # Azure AI Searchへの認証に使用される資格情報を生成生成
 credential = AzureKeyCredential(search_service_api_key)
 
@@ -57,7 +58,7 @@ def chat():
     print("user_message:", user_message, ":", str(len(user_message)) )
 
     #### 質問文のベクトル化
-    # 質問文をAzure OpenAIに送信して、ベクトル化する
+    # 質問文をAzure OpenAIの「Ada（ベクトル化用）のデプロイモデル」に送信して、ベクトル化する
     response = openai.Embedding.create(input=user_message, engine=embedding_model_name)
     embeddings = response['data'][0]['embedding']       # ベクトル化データ
 
@@ -78,7 +79,7 @@ def chat():
             k=3,
             fields='vector'
         )],
-        select=['chunk','title'],       # 取得データのフィールド名
+        select=['title', 'chunk'],       # 取得データのフィールド名
         top=1
     )
 
@@ -86,13 +87,14 @@ def chat():
     search_result = ''
     for result in results:  
         search_result += result['chunk']
+        title_result = result['title']
 
 #    # デバッグ
 #    print("search_result:", search_result, ":", str(len(search_result)) )
 
     # システムプロンプトの生成
     system_prompt = f'''
-    あなたは優秀なサポートAIです。ユーザーから提供される規約情報を要約して回答してください。
+    あなたは優秀なサポートAIです。ユーザーから提供される情報を読みやすい形にして回答してください。
     '''
 
     # ユーザプロンプトの生成
@@ -145,7 +147,8 @@ def chat():
         print("response:", response.json()["choices"][0]["message"]["content"])
 
         # レスポンスから生成されたテキストを取得
-        generated_text = f'【{user_message}】に対する回答\n\n' + response.json()["choices"][0]["message"]["content"]
+#        generated_text = f'【{user_message}】に対する回答\n\n' + response.json()["choices"][0]["message"]["content"]
+        generated_text = f'【{user_message}】に対する回答\n\n' + response.json()["choices"][0]["message"]["content"].replace('。', '。\n').replace('\n\n', '。\n') + f'\n\n規約ファイル：{title_result}\n'
 #        generated_text = response["choices"][0]["message"]["content"].replace('\n', '').replace(' .', '.').strip()
 #        generated_text = search_result.replace('\n', '<br>').replace(' .', '.').strip()
 #        generated_text = search_result
