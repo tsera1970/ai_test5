@@ -1,31 +1,29 @@
+# Web画面制御
 from flask import Flask, request, jsonify, render_template
+
+# json関連
 import json
+
+# API Management API呼び出し関連
 import requests
 from requests.exceptions import RequestException
 
-#import os
-
+# AzureOpenAIモデル,AI Search呼び出し関連
 import openai
 from azure.core.credentials import AzureKeyCredential  
 from azure.search.documents import SearchClient  
 from azure.search.documents.models import Vector 
 
+## プロキシ認証情報を設定 ローカルデバッグ時
+#import os
+
 ## Webサービス（Flask）起動
 app = Flask(__name__)
 
-#### 各種キー設定
-### プロキシ認証情報を設定 ローカルデバッグ時
-## requests用プロキシ設定
-#proxies = {
-#    "http": "http://sera:Ej3AR1MH,<@172.16.1.23:15080",
-#    "https": "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
-#}
-## openai用プロキシ設定
-#os.environ["http_proxy"] = "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
-#os.environ["https_proxy"] = "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
-
+### 各種キー設定
 # API Management APIの呼び出しURL
-api_url = 'https://hekchat-api-managementservice.azure-api.net/openai/'
+api_url = 'https://hekchat-api-managementservice.azure-api.net/rag/'    # 対象APIのBaseURL
+Api_Subscription_Key = '3dae31fe25da43bc9a1a3edb603ea2b0'               # 対象APIで使用するサブスクリプションキー
 
 # Azure OpenAIのAPIキー／エンドポイント等を設定する
 openai.api_type = 'azure'
@@ -43,6 +41,16 @@ index_name = 'vector-nagao-kitei'                                               
 # Azure AI Searchへの認証に使用される資格情報を生成生成
 credential = AzureKeyCredential(search_service_api_key)
 
+### プロキシ認証情報を設定 ローカルデバッグ時
+## requests用プロキシ設定
+#proxies = {
+#    "http": "http://sera:Ej3AR1MH,<@172.16.1.23:15080",
+#    "https": "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
+#}
+## openai用プロキシ設定
+#os.environ["http_proxy"] = "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
+#os.environ["https_proxy"] = "http://sera:Ej3AR1MH,<@172.16.1.23:15080"
+
 ## メイン処理
 # Web画面処理 初期表示時
 @app.route('/', methods=['GET'])
@@ -54,8 +62,13 @@ def index():
 def chat():
     # リクエストからユーザーの入力メッセージを取得
     user_message = request.json['message']
+
     # デバッグ
+    print("【処理開始】")
     print("user_message:", user_message, ":", str(len(user_message)) )
+
+    # デバッグ
+    print("【ベクトル化送信】")
 
     #### 質問文のベクトル化
     # 質問文をAzure OpenAIの「Ada（ベクトル化用）のデプロイモデル」に送信して、ベクトル化する
@@ -63,10 +76,8 @@ def chat():
     embeddings = response['data'][0]['embedding']       # ベクトル化データ
 
     # デバッグ
-    print("送信前")
-
-#    # デバッグ
-#    print("embeddings:", embeddings, ":", str(len(embeddings)) )
+    print("【AI Search送信】")
+#    print("ベクトル化文字列:", embeddings, ":", str(len(embeddings)) )
 
     # Azure AI Searchのクライアントオブジェクトを作成する
     search_client = SearchClient(search_service_endpoint, index_name, credential)
@@ -89,7 +100,8 @@ def chat():
         search_result += result['chunk']
         title_result = result['title']
 
-#    # デバッグ
+    # デバッグ
+    print("【プロンプト生成】")
 #    print("search_result:", search_result, ":", str(len(search_result)) )
 
     # システムプロンプトの生成
@@ -103,13 +115,13 @@ def chat():
     { search_result }
     '''
 
-#    # デバッグ
-#    print("system_prompt:", system_prompt, ":", str(len(system_prompt)) )
-#    print("user_prompt:", user_prompt, ":", str(len(user_prompt)) )
+    # デバッグ
+    print("system_prompt:", system_prompt, ":", str(len(system_prompt)) )
+    print("user_prompt:", user_prompt, ":", str(len(user_prompt)) )
 
     try:
 
-#        # ChatCompletion経由でAzure OpenAIにリクエストする
+#        # ChatCompletion経由でAzure OpenAIにリクエストする ※不採用：API経由でないのでログが取れない
 #        # APIのパラメータとして、システムプロンプトとユーザーのプロンプトを設定する
 #        response = openai.ChatCompletion.create(
 #          engine=gpt_model_name, 
@@ -118,11 +130,8 @@ def chat():
 #                {"role": "user", "content": user_prompt}
 #            ]
 #        )
-        # デバッグ
-        print("受信後")
 
-
-## API Management経由の処理
+        ## API Management経由の処理
         request_data = {
              "system_message": system_prompt
            , "user_message": user_prompt
@@ -130,8 +139,11 @@ def chat():
 
         headers={
             "Content-Type": "application/json"
-         ,  "Ocp-Apim-Subscription-Key": "fa27b8cb5a3249bb93efe843fca26015"
+         ,  "Ocp-Apim-Subscription-Key": Api_Subscription_Key
         }
+
+        # デバッグ
+        print("【API送信】")
 
         # Azure APIManagementI APIにリクエストを送信
         response = requests.post(
@@ -142,31 +154,26 @@ def chat():
         )
 
         # デバッグ
-        print("受信後")
-#        print("response:", response["choices"][0]["message"]["content"])
+        print("【API受信】")
         print("response:", response.json()["choices"][0]["message"]["content"])
 
-        # レスポンスから生成されたテキストを取得
-#        generated_text = f'【{user_message}】に対する回答\n\n' + response.json()["choices"][0]["message"]["content"]
+        # レスポンスから生成されたテキストを成形
         generated_text = f'【{user_message}】に対する回答\n\n' + response.json()["choices"][0]["message"]["content"].replace('。', '。\n').replace('\n\n', '。\n') + f'\n\n規約ファイル：{title_result}\n'
-#        generated_text = response["choices"][0]["message"]["content"].replace('\n', '').replace(' .', '.').strip()
-#        generated_text = search_result.replace('\n', '<br>').replace(' .', '.').strip()
-#        generated_text = search_result
 
         # デバッグ
-        print("回答完了")
+        print("【回答成形】")
         print("generated_text:",generated_text)
 
-        # レスポンスを返す
+        # レスポンスをWeb画面へJSON形式で返す
         return jsonify({'message': generated_text})
 
     except RequestException as e:
-        print("error1:",e)
+        print("error1:", response)
         # エラーメッセージを返す
         return jsonify({'message': 'エラーが発生しました、再度、入力をしてくださいね。'})
 
     except Exception as e:
-        print("error2:",e)
+        print("error2:", response)
         # エラーメッセージを返す
         return jsonify({'message': 'エラーが発生しました、再度、入力をしてくださいな。'})
 
